@@ -33,7 +33,28 @@ az network front-door routing-rule show -f $prefix -g $rg -n ${prefix}routing --
 
 ## Test
 
+RuleEngine is setup as follow.
+
+~~~mermaid
+stateDiagram-v2
+    state if_state1 <<choice>>
+    state if_state2 <<choice>>
+    [*] --> Cookie=red
+    Cookie=red --> if_state1
+    if_state1 --> cookie=blue
+    if_state1 --> cookie=null
+    if_state1 --> cookie=red
+    cookie=red --> Backend=Red
+    cookie=blue --> Backend=Blue
+    cookie=null --> if_state2
+    if_state2 --> path=red
+    if_state2 --> path=blue 
+    path=red --> Backend=Red
+~~~
+
 Test are done via curl. Because we use azure front door all test can be done via the public internet.
+
+
 
 ~~~ text
 fep=${prefix}fep
@@ -43,6 +64,10 @@ curl -v -H"X-Azure-DebugInfo: 1" http://$host/
 curl -v -H"X-Azure-DebugInfo: 1" http://$host/hello/blue.test
 curl -v -H"X-Azure-DebugInfo: 1" http://$host/hello/blue/
 curl -v -H"X-Azure-DebugInfo: 1" http://$host/red/
+curl -v -H"cookie: red=true" -H"X-Azure-DebugInfo: 1" http://$host/
+curl -v -H"cookie: red=true" -H"X-Azure-DebugInfo: 1" http://$host/red/
+curl -v -H"cookie: red=true" -H"cookie: blue=true" -H"X-Azure-DebugInfo: 1" http://$host/
+curl -v -H"cookie: blue=true" -H"cookie: red=true" -H"X-Azure-DebugInfo: 1" http://$host/
 curl -v -H"X-Azure-DebugInfo: 1" http://$host/red
 curl -v -H"X-Azure-DebugInfo: 1" http://$host/red.test
 ~~~

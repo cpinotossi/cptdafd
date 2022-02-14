@@ -4,13 +4,57 @@ resource afd 'Microsoft.Network/frontDoors@2020-05-01' existing = {
   name: prefix
 }
 
+var actionred = {
+  routeConfigurationOverride: {
+    forwardingProtocol: 'MatchRequest'
+    backendPool: {
+      id: resourceId('Microsoft.Network/frontdoors/BackendPools',prefix,'${prefix}backpoolred')
+    }
+    '@odata.type': '#Microsoft.Azure.FrontDoor.Models.FrontdoorForwardingConfiguration'
+  }
+  requestHeaderActions: []
+  responseHeaderActions: []
+}
+
+var actionblue = {
+  routeConfigurationOverride: {
+    forwardingProtocol: 'MatchRequest'
+    backendPool: {
+      id: resourceId('Microsoft.Network/frontdoors/BackendPools',prefix,'${prefix}backpoolblue')
+    }
+    '@odata.type': '#Microsoft.Azure.FrontDoor.Models.FrontdoorForwardingConfiguration'
+  }
+  requestHeaderActions: []
+  responseHeaderActions: []
+}
+
 resource afdrules 'Microsoft.Network/frontdoors/rulesengines@2020-05-01' = {
   name: '${prefix}/${prefix}'
   properties: {
     rules: [
       {
-        name: '${prefix}rulered'
+        name: '${prefix}ruleredcookie'
         priority: 0
+        matchConditions: [
+          {
+            rulesEngineMatchValue: [
+              'red'
+            ]
+            selector: 'cookie'
+            negateCondition: false
+            rulesEngineMatchVariable: 'RequestHeader'
+            rulesEngineOperator: 'Contains'
+            transforms: [
+              'Lowercase'
+            ]
+          }
+        ]
+        action: actionred
+        matchProcessingBehavior: 'Stop'
+      }
+      {
+        name: '${prefix}rulered'
+        priority: 1
         matchConditions: [
           {
             rulesEngineMatchValue: [
@@ -24,22 +68,32 @@ resource afdrules 'Microsoft.Network/frontdoors/rulesengines@2020-05-01' = {
             ]
           }
         ]
-        action: {
-          routeConfigurationOverride: {
-            forwardingProtocol: 'MatchRequest'
-            backendPool: {
-              id: resourceId('Microsoft.Network/frontdoors/BackendPools',prefix,'${prefix}backpoolred')
-            }
-            '@odata.type': '#Microsoft.Azure.FrontDoor.Models.FrontdoorForwardingConfiguration'
+        action: actionred
+        matchProcessingBehavior: 'Stop'
+      }
+      {
+        name: '${prefix}rulebluecookie'
+        priority: 2
+        matchConditions: [
+          {
+            rulesEngineMatchValue: [
+              'blue'
+            ]
+            selector: 'cookie'
+            negateCondition: false
+            rulesEngineMatchVariable: 'RequestHeader'
+            rulesEngineOperator: 'Contains'
+            transforms: [
+              'Lowercase'
+            ]
           }
-          requestHeaderActions: []
-          responseHeaderActions: []
-        }
+        ]
+        action: actionblue
         matchProcessingBehavior: 'Stop'
       }
       {
         name: '${prefix}ruleblue'
-        priority: 1
+        priority: 3
         matchConditions: [
           {
             rulesEngineMatchValue: [
@@ -53,19 +107,10 @@ resource afdrules 'Microsoft.Network/frontdoors/rulesengines@2020-05-01' = {
             ]
           }
         ]
-        action: {
-          routeConfigurationOverride: {
-            forwardingProtocol: 'MatchRequest'
-            backendPool: {
-              id: resourceId('Microsoft.Network/frontdoors/BackendPools',prefix,'${prefix}backpoolblue')
-            }
-            '@odata.type': '#Microsoft.Azure.FrontDoor.Models.FrontdoorForwardingConfiguration'
-          }
-          requestHeaderActions: []
-          responseHeaderActions: []
-        }
+        action: actionblue
         matchProcessingBehavior: 'Stop'
       }
+
     ]
   }
 }
